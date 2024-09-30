@@ -3,6 +3,8 @@
 
 @section('content')
     <div class="container">
+        @include('components.alerts')
+
         <div class="card">
             <div class="card-header d-flex justify-content-between align-content-center">
                 <h3>Edit User</h3>
