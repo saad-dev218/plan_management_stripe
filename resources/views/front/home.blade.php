@@ -51,7 +51,7 @@
                                 <div class="d-grid">
                                     @if (auth()->check() && auth()->user()->role !== 'admin')
                                         @php
-                                            $userSubscription = auth()->user()->userSubs; // Get user's subscription
+                                            $userSubscription = auth()->user()->userSubs;
                                         @endphp
                                         @if ($userSubscription && $userSubscription->plan_id === $plan->id)
                                             <button class="btn btn-secondary mt-3" disabled>Current Package</button>
@@ -60,7 +60,13 @@
                                                 data-plan-id="{{ $plan->stripe_product_id }}"
                                                 data-plan-price="{{ $plan->price }}"
                                                 data-plan-stripe-price="{{ $plan->stripe_price_id }}">
-                                                Buy Now
+                                                @if ($userSubscription && $plan->price > $userSubscription->plan->price)
+                                                    Upgrade Now
+                                                @elseif ($userSubscription && $plan->price < $userSubscription->plan->price)
+                                                    Downgrade Now
+                                                @else
+                                                    Buy Now
+                                                @endif
                                             </button>
                                         @endif
                                     @elseif(!auth()->check())

@@ -26,6 +26,7 @@ class PaymentController extends Controller
                 throw new \Exception('Invalid payment or plan details.');
             }
 
+            // Create or retrieve customer
             if (!$user->customer_id) {
                 $paymentMethod = $stripe->paymentMethods->create([
                     'type' => 'card',
@@ -69,36 +70,53 @@ class PaymentController extends Controller
                 ->first();
 
             if ($existingSubscription) {
+                // Get the existing subscription from Stripe
                 $existingStripeSubscription = $stripe->subscriptions->retrieve($existingSubscription->stripe_subscription_id);
-                $stripe->subscriptions->cancel($existingStripeSubscription->id);
-                $existingSubscription->delete();
+
+                // If upgrading/downgrading, use Stripe's proration settings
+                $updatedSubscription = $stripe->subscriptions->update($existingStripeSubscription->id, [
+                    'items' => [
+                        [
+                            'id' => $existingStripeSubscription->items->data[0]->id,
+                            'price' => $plan->stripe_price_id,
+                        ]
+                    ],
+                    'proration_behavior' => 'create_prorations',
+                ]);
+
+                // Update the local database
+                $existingSubscription->plan_id = $plan->id;
+                $existingSubscription->stripe_price_id = $plan->stripe_price_id;
+                $existingSubscription->save();
+
+            } else {
+                // New subscription creation
+                $subscription = $stripe->subscriptions->create([
+                    'customer' => $customer->id,
+                    'items' => [['price' => $plan->stripe_price_id]],
+                ]);
+
+                // Store the user subscription
+                UserSubscription::create([
+                    'user_id' => $user->id,
+                    'plan_id' => $plan->id,
+                    'stripe_subscription_id' => $subscription->id,
+                    'stripe_customer_id' => $customer->id,
+                    'stripe_price_id' => $plan->stripe_price_id,
+                    'payment_status' => 'active',
+                ]);
             }
-
-            $subscription = $stripe->subscriptions->create([
-                'customer' => $customer->id,
-                'items' => [['price' => $plan->stripe_price_id]],
-            ]);
-
-            // Store the user subscription
-            $userSubscription = UserSubscription::create([
-                'user_id' => $user->id,
-                'plan_id' => $plan->id,
-                'stripe_subscription_id' => $subscription->id,
-                'stripe_customer_id' => $customer->id,
-                'stripe_price_id' => $plan->stripe_price_id,
-                'payment_status' => 'active',
-            ]);
 
             // Store the payment record
             \App\Models\PaymentRecord::create([
                 'user_id' => $user->id,
                 'plan_id' => $plan->id,
-                'transaction_id' => $subscription->id, // Assuming this is the relevant transaction ID
-                'transaction_response' => json_encode($subscription), // Store the full response as JSON
-                'status' => 'success', // Payment status
+                'transaction_id' => $updatedSubscription->id ?? $subscription->id,
+                'transaction_response' => json_encode($updatedSubscription ?? $subscription),
+                'status' => 'success',
             ]);
 
-            return redirect()->route('home')->with('success', 'Subscription created successfully!');
+            return redirect()->route('home')->with('success', 'Subscription created/updated successfully!');
         } catch (\Stripe\Exception\CardException $e) {
             return back()->withErrors(['message' => 'Payment error: ' . $e->getMessage()]);
         } catch (\Stripe\Exception\ApiErrorException $e) {
