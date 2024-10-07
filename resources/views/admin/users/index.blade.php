@@ -17,7 +17,7 @@
                             <th>Name</th>
                             <th>Email</th>
                             <th>Plan</th>
-                            <th>Subscription Status</th>
+                            <th>Payment Status</th>
                             <th>Action</th>
                         </tr>
                     </thead>
@@ -27,15 +27,15 @@
                                 <td>{{ $user->name }}</td>
                                 <td>{{ $user->email }}</td>
                                 <td>
-                                    @if ($user->userSubs)
-                                        {{ $user->userSubs->plan->name }}
+                                    @if ($user->userPlan)
+                                        {{ $user->userPlan->first()->plan->name }}
                                     @else
                                         No Plan
                                     @endif
                                 </td>
                                 <td>
-                                    @if ($user->userSubs)
-                                        {{ $user->userSubs->payment_status }}
+                                    @if ($user->userPlan)
+                                        {{ $user->userPlan->first()->payment_status }}
                                     @else
                                         No Plan / No Status
                                     @endif

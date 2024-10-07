@@ -17,6 +17,9 @@ class PlanController extends Controller
         Stripe::setApiKey(env('STRIPE_SECRET'));
     }
 
+    /**
+     * Display a listing of the resource.
+     */
     public function index()
     {
         $plans = Plan::with('features')->paginate(10);
@@ -24,12 +27,18 @@ class PlanController extends Controller
         return view('admin.plans.index', compact('plans', 'features'));
     }
 
+    /**
+     * Show the form for creating a new resource.
+     */
     public function create()
     {
         $features = Feature::all();
         return view('admin.plans.create', compact('features'));
     }
 
+    /**
+     * Store a newly created resource in storage.
+     */
     public function store(StorePlanRequest $request)
     {
         try {
@@ -43,7 +52,6 @@ class PlanController extends Controller
             $stripePrice = \Stripe\Price::create([
                 'unit_amount' => $plan->price * 100,
                 'currency' => 'pkr',
-                'recurring' => ['interval' => 'month'],
                 'product' => $stripeProduct->id,
             ]);
 
@@ -61,11 +69,17 @@ class PlanController extends Controller
         }
     }
 
+    /**
+     * Display the specified resource.
+     */
     public function show(Plan $plan)
     {
-        // Not implemented
+        //
     }
 
+    /**
+     * Show the form for editing the specified resource.
+     */
     public function edit(Plan $plan)
     {
         $plan->load('features');
@@ -73,6 +87,9 @@ class PlanController extends Controller
         return view('admin.plans.edit', compact('plan', 'features'));
     }
 
+    /**
+     * Update the specified resource in storage.
+     */
     public function update(UpdatePlanRequest $request, Plan $plan)
     {
         try {
@@ -86,16 +103,13 @@ class PlanController extends Controller
             }
 
             if ($plan->stripe_price_id) {
-                \Stripe\Price::update($plan->stripe_price_id, ['active' => false]);
-
                 $newStripePrice = \Stripe\Price::create([
                     'unit_amount' => $plan->price * 100,
                     'currency' => 'pkr',
-                    'recurring' => ['interval' => 'month'],
                     'product' => $plan->stripe_product_id,
                 ]);
 
-                $plan->stripe_price_id = $newStripePrice->id;
+                $plan->stripe_price_id = $newStripePrice->id; // Save new price ID
                 $plan->save();
             }
 
@@ -109,6 +123,9 @@ class PlanController extends Controller
         }
     }
 
+    /**
+     * Remove the specified resource from storage.
+     */
     public function destroy(Plan $plan)
     {
         try {
@@ -118,6 +135,7 @@ class PlanController extends Controller
                 $price->save();
             }
 
+            // Deactivate the product
             if ($plan->stripe_product_id) {
                 $product = \Stripe\Product::retrieve($plan->stripe_product_id);
                 $product->active = false;
@@ -132,4 +150,5 @@ class PlanController extends Controller
             return redirect()->back()->with('danger', 'Error deleting plan: ' . $e->getMessage());
         }
     }
+
 }

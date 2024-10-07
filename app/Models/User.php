@@ -43,8 +43,10 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
-    public function userSubs()
+
+    public function userPlan()
     {
-        return $this->hasOne(UserSubscription::class, 'user_id', 'id');
+        return $this->hasOne(UserPlan::class);
     }
+
 }

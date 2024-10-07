@@ -14,6 +14,7 @@ class PaymentRecord extends Model
         'transaction_id',
         'transaction_response',
         'status',
+        'amount',
     ];
 
     public function user()

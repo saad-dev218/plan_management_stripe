@@ -5,26 +5,24 @@
 @endpush
 @section('content')
     <div class="container">
-        @include('components.alerts')
         <div class="card">
             <div class="card-header d-flex justify-content-between align-content-center">
                 <h3>Create Plan</h3>
                 <a href="{{ route('plans.index') }}" class="btn btn-primary float-end">Manage Plans</a>
             </div>
-            <form action="{{ route('plans.store') }}" id="create-plan-form" method="POST" id="create-plan-form">
+            <form action="{{ route('plans.store') }}" method="POST" id="create-plan-form">
                 <div class="card-body">
                     @csrf
                     <div class="form-group">
                         <label for="name">Name</label>
-                        <input type="text" placeholder="Enter Plan Name" class="form-control" name="name"
-                            value="{{ old('name') }}" required>
+                        <input type="text" placeholder="Enter Plan Name" class="form-control" name="name" value="{{ old('name') }}" required>
                         @error('name')
                             <div class="text-danger">{{ $message }}</div>
                         @enderror
                     </div>
                     <div class="form-group mt-2">
                         <label for="description">Description</label>
-                        <textarea class="form-control" required placeholder="Enter Plan Description" name="description">{{ old('description') }}</textarea>
+                        <textarea class="form-control" placeholder="Enter Plan Description" name="description">{{ old('description') }}</textarea>
                         @error('description')
                             <div class="text-danger">{{ $message }}</div>
                         @enderror
@@ -39,15 +37,11 @@
                     </div>
                     <div class="form-group mt-2">
                         <label for="features">Features</label>
-                        <select class="form-control select2" name="features[]" data-placeholder="Select Features"
-                            multiple="multiple" required>
+                        <select class="form-control select2" name="features[]" data-placeholder="Select Features" multiple="multiple" required>
                             @foreach ($features as $feature)
-                                <option value="{{ $feature->id }}"
-                                    {{ old('features') ? (in_array($feature->id, old('features')) ? 'selected' : '') : '' }}>
-                                    {{ $feature->name }}</option>
+                                <option value="{{ $feature->id }}">{{ $feature->name }}</option>
                             @endforeach
                         </select>
-                        <div class="text-danger mt-2" id="features-error"></div>
                         @error('features')
                             <div class="text-danger">{{ $message }}</div>
                         @enderror
@@ -68,27 +62,6 @@
             $('.select2').select2({
                 placeholder: 'Select Features',
                 allowClear: true,
-            });
-
-            $("#create-plan-form").validate({
-                rules: {
-                    'features[]': {
-                        required: true,
-                        minlength: 1
-                    }
-                },
-                messages: {
-                    'features[]': {
-                        required: "Please select at least one feature.",
-                    }
-                },
-                errorPlacement: function(error, element) {
-                    if (element.attr("name") === "features[]") {
-                        error.appendTo("#features-error");
-                    } else {
-                        error.insertAfter(element);
-                    }
-                }
             });
         });
     </script>

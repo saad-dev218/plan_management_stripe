@@ -14,6 +14,6 @@ class AdminController extends Controller
         $users_count = User::count();
         $plans_count = Plan::count();
 
-        return view('admin.home', compact('users_count', 'plans_count'));
+        return view('home', compact('users_count', 'plans_count'));
     }
 }

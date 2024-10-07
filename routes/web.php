@@ -3,10 +3,10 @@
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\PlanController;
 use App\Http\Controllers\Admin\UserController;
-use App\Http\Controllers\Front\PaymentController;
-use App\Http\Controllers\Admin\PaymentController as AdminPaymentController;
-
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\Admin\PaymentController as AdminPaymentController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -20,21 +20,21 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/sdasd', function () {
-    $stripe = new \Stripe\StripeClient('sk_test_51Q2Sl5RwaO4iOBfzFbtIPSdaHCQvTReGmFxYVmvUiphaiFcE32VvB4IbtFPD0anXDjwHPSXBfz25gssBPpEaHle200cglFnb5g');
-
-    return $stripe->subscriptions->cancel([]);
-});
+// Route::get('/', function () {
+//     return view('welcome');
+// });
 
 Auth::routes();
 
 Route::get('/', [HomeController::class, 'home'])->name('home');
 
+// Admin Routes
 Route::middleware('auth', 'admin')->prefix('admin')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'index'])->name('admin.dashboard');
     Route::resource('/plans', PlanController::class);
     Route::resource('/users', UserController::class);
     Route::resource('payments', AdminPaymentController::class);
+
 });
 
-Route::post('/subscription/create', [PaymentController::class, 'create'])->name('subscription.create');
+Route::post('/purchase', [PaymentController::class, 'purchase'])->name('purchase');

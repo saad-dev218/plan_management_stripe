@@ -15,6 +15,7 @@ return new class extends Migration
             $table->bigIncrements('id');
             $table->unsignedBigInteger('user_id');
             $table->unsignedBigInteger('plan_id');
+            $table->double('amount');
             $table->string('transaction_id');
             $table->text('transaction_response');
             $table->enum('status', ['success', 'failed', 'pending']);

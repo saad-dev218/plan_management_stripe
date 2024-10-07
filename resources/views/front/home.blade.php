@@ -1,37 +1,32 @@
 @extends('layouts.app')
-@section('title', 'Home')
-@push('styles')
-    <style>
-        .card {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-        }
-
-        .responsive-card-body {
-            min-height: 250px;
-        }
-
-        .plan-features {
-            max-height: 200px;
-            min-height: 100px;
-            overflow-y: auto;
-        }
-
-        .card-footer {
-            margin-top: auto;
-        }
-    </style>
-@endpush
 @section('content')
+<style>
+    .card {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .responsive-card-body {
+        min-height: 250px;
+    }
+
+    .plan-features {
+        max-height: 200px;
+        min-height: 100px;
+        overflow-y: auto;
+    }
+
+    .card-footer {
+        margin-top: auto;
+    }
+</style>
     <!-- Pricing Section -->
     <section class="pricing py-5">
         <div class="container">
-            @include('components.alerts')
             <div class="row">
-                <!-- Loop through the plans -->
                 @foreach ($plans as $plan)
-                    <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="col-lg-4">
                         <div class="card mb-5 mb-lg-0">
                             <div class="card-header text-center">
                                 <h2 class="card-title">{{ $plan->name ?? 'Not Available' }}</h2>
@@ -51,7 +46,7 @@
                                 <div class="d-grid">
                                     @if (auth()->check() && auth()->user()->role !== 'admin')
                                         @php
-                                            $userSubscription = auth()->user()->userSubs;
+                                            $userSubscription = auth()->user()->userPlan;
                                         @endphp
                                         @if ($userSubscription && $userSubscription->plan_id === $plan->id)
                                             <button class="btn btn-secondary mt-3" disabled>Current Package</button>
@@ -59,7 +54,8 @@
                                             <button class="btn btn-primary mt-3 purchase-btn"
                                                 data-plan-id="{{ $plan->stripe_product_id }}"
                                                 data-plan-price="{{ $plan->price }}"
-                                                data-plan-stripe-price="{{ $plan->stripe_price_id }}">
+                                                data-plan-stripe-price="{{ $plan->stripe_price_id }}"
+                                                data-plan-name="{{ $plan->name }}">
                                                 @if ($userSubscription && $plan->price > $userSubscription->plan->price)
                                                     Upgrade Now
                                                 @elseif ($userSubscription && $plan->price < $userSubscription->plan->price)
@@ -83,7 +79,6 @@
         </div>
     </section>
 
-
     <!-- Payment Modal -->
     <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -93,60 +88,65 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="payment-form" method="POST" action="{{ route('subscription.create') }}">
+                    <form id="payment-form" action="{{ route('purchase') }}" method="POST">
                         @csrf
-                        <div id="card-element" class="mb-3">
-
-                        </div>
-                        <input type="hidden" name="plan_id" id="plan_id">
-                        <input type="hidden" name="stripe_price_id" id="stripe_price_id">
-                        <input type="hidden" name="plan_price" id="plan_price">
+                        <input type="hidden" name="plan_id" id="plan_id" value="">
+                        <input type="hidden" name="payment_method_id" id="payment_method_id" value="">
+                        <div id="card-element"></div>
+                        <div id="card-errors" role="alert"></div>
                         <button type="submit" class="btn btn-primary mt-3">Submit Payment</button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
-
 @endsection
+
 @push('scripts')
     <script>
-        $(document).ready(function() {
-            var stripe = Stripe('{{ env('STRIPE_KEY') }}');
-            var elements = stripe.elements();
-            var card = elements.create('card');
-            card.mount('#card-element');
+        const stripe = Stripe('{{ env('STRIPE_KEY') }}');
+        const elements = stripe.elements();
+        const cardElement = elements.create('card');
+        cardElement.mount('#card-element');
 
-            // Open modal and pass plan info
-            $('.purchase-btn').on('click', function() {
-                $('#plan_id').val($(this).data('plan-id'));
-                $('#plan_price').val($(this).data('plan-price'));
-                $('#stripe_price_id').val($(this).data('plan-stripe-price'));
+        $('.purchase-btn').click(function() {
+            if (!{{ Auth::check() ? 'true' : 'false' }}) {
+                window.location.href = "{{ route('login') }}";
+            } else {
+                const planId = $(this).data('plan-id');
+                const planPrice = $(this).data('plan-price');
+                $('#plan_id').val(planId);
+                $('#payment_method_id').val(''); // This will be filled when form is submitted
                 $('#paymentModal').modal('show');
+            }
+        });
+
+        $('#payment-form').on('submit', async function(event) {
+            event.preventDefault();
+
+            const {
+                paymentMethod,
+                error
+            } = await stripe.createPaymentMethod({
+                type: 'card',
+                card: cardElement,
             });
 
-            // Handle form submission
-            var form = document.getElementById('payment-form');
-            form.addEventListener('submit', function(event) {
-                event.preventDefault();
+            if (error) {
+                document.getElementById('card-errors').textContent = error.message;
+            } else {
+                $('#payment_method_id').val(paymentMethod.id); // Set payment method ID before form submission
+                this.submit(); // Now submit the form
+            }
+        });
 
-                stripe.createToken(card).then(function(result) {
-                    if (result.error) {
-                        // Display error
-                        alert(result.error.message);
-                    } else {
-                        // Add Stripe token to form
-                        var hiddenInput = document.createElement('input');
-                        hiddenInput.setAttribute('type', 'hidden');
-                        hiddenInput.setAttribute('name', 'stripeToken');
-                        hiddenInput.setAttribute('value', result.token.id);
-                        form.appendChild(hiddenInput);
-
-                        // Submit the form
-                        form.submit();
-                    }
-                });
-            });
+        cardElement.on('change', (event) => {
+            const displayError = document.getElementById('card-errors');
+            if (event.error) {
+                displayError.textContent = event.error.message;
+            } else {
+                displayError.textContent = '';
+            }
         });
     </script>
 @endpush

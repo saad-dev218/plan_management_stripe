@@ -39,7 +39,7 @@
                 </div>
             </div>
             <div class="card-footer text-center">
-                {{ $plans->links('pagination::bootstrap-5') }}
+                {{ $plans->links('pagination::bootstrap-5') }}'
             </div>
         </div>
     </div>

@@ -21,13 +21,13 @@ class UpdateUserRequest extends FormRequest
      */
     public function rules(): array
     {
-        // Get the current user ID to exclude from unique email check
-        $userId = $this->route('user');
 
         return [
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $userId,
+            'email' => 'required|email|unique:users,email,' . $this->user->id,
             'password' => 'nullable|string|min:8|confirmed',
+            'plan_id' => 'required|exists:plans,id',
+            'payment_status' => 'required|string',
         ];
     }
 }

@@ -21,6 +21,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        // Table for mapping plans and features
         Schema::create('feature_plan', function (Blueprint $table) {
             $table->id();
             $table->foreignId('plan_id')->constrained()->onDelete('cascade');
@@ -34,6 +35,7 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::dropIfExists('feature_plan');
         Schema::dropIfExists('plans');
     }
 };

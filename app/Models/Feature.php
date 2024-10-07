@@ -11,4 +11,8 @@ class Feature extends Model
 
     protected $fillable = ['name'];
 
+    public function plans()
+    {
+        return $this->belongsToMany(Plan::class, 'feature_plan');
+    }
 }
