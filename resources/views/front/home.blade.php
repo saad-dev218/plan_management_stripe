@@ -1,29 +1,41 @@
 @extends('layouts.app')
 @section('content')
-<style>
-    .card {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-    }
+    <style>
+        .card {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
 
-    .responsive-card-body {
-        min-height: 250px;
-    }
+        .responsive-card-body {
+            min-height: 250px;
+        }
 
-    .plan-features {
-        max-height: 200px;
-        min-height: 100px;
-        overflow-y: auto;
-    }
+        .plan-features {
+            max-height: 200px;
+            min-height: 100px;
+            overflow-y: auto;
+        }
 
-    .card-footer {
-        margin-top: auto;
-    }
-</style>
+        .card-footer {
+            margin-top: auto;
+        }
+    </style>
     <!-- Pricing Section -->
     <section class="pricing py-5">
         <div class="container">
+            @if (session('success'))
+                <div class="alert alert-success">
+                    {{ session('success') }}
+                </div>
+            @endif
+
+            @if (session('error'))
+                <div class="alert alert-danger">
+                    {{ session('error') }}
+                </div>
+            @endif
+
             <div class="row">
                 @foreach ($plans as $plan)
                     <div class="col-lg-4">
@@ -45,13 +57,26 @@
                             <div class="card-footer">
                                 <div class="d-grid">
                                     @if (auth()->check() && auth()->user()->role !== 'admin')
-                                        <button class="btn btn-primary mt-3 purchase-btn"
-                                            data-plan-id="{{ $plan->stripe_product_id }}"
-                                            data-plan-price="{{ $plan->price }}"
-                                            data-plan-stripe-price="{{ $plan->stripe_price_id }}"
-                                            data-plan-name="{{ $plan->name }}">
-                                            Buy Now
-                                        </button>
+                                        @php
+                                            $userSubscription = auth()->user()->userPlan;
+                                        @endphp
+                                        @if ($userSubscription && $userSubscription->plan_id === $plan->id)
+                                            <button class="btn btn-secondary mt-3" disabled>Current Package</button>
+                                        @else
+                                            <button class="btn btn-primary mt-3 purchase-btn"
+                                                data-plan-id="{{ $plan->stripe_product_id }}"
+                                                data-plan-price="{{ $plan->price }}"
+                                                data-plan-stripe-price="{{ $plan->stripe_price_id }}"
+                                                data-plan-name="{{ $plan->name }}">
+                                                @if ($userSubscription && $plan->price > $userSubscription->plan->price)
+                                                    Upgrade Now
+                                                @elseif ($userSubscription && $plan->price < $userSubscription->plan->price)
+                                                    Downgrade Now
+                                                @else
+                                                    Buy Now
+                                                @endif
+                                            </button>
+                                        @endif
                                     @elseif(!auth()->check())
                                         <a href="{{ route('register') }}" class="btn btn-primary mt-3">Register to Buy</a>
                                     @else
